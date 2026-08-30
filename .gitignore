@@ -1,0 +1,32 @@
+﻿# Virtual Environments
+venv/
+env/
+ENV/
+.env
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Database
+*.db
+*.sqlite3
+backend/*.db
+
+# OpenCV downloaded cascades
+backend/*.xml
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Flutter & Build Artifacts (if applicable)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
