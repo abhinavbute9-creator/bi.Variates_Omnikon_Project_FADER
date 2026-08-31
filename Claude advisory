@@ -1,0 +1,31 @@
+Given you likely have limited hours, let's be surgical. I'll break this into: **what to actually build tonight** (highest demo impact per hour), **what to skip and how to frame it honestly**, and **how to deploy it** so it's not stuck on `localhost`.
+
+## The honest triage
+
+Right now your app looks real but mostly *isn't wired up* — the risk cards, ETA, weather, and 3-strike counter in `second_main.dart` are hardcoded strings, not live data. Your backend, meanwhile, already has working logic for almost all of it. The single highest-leverage move tonight is **connecting the UI you already built to the backend you already built** — not adding new features.
+
+One thing I will NOT recommend attempting tonight: **real camera-based MediaPipe face tracking**. `cv_fatigue_detector.py` is currently empty, and building a working on-device Face Mesh + EAR pipeline (camera permissions, landmark model, blink math, testing across web/Android) is realistically 2-3 full days of work, not hours — and it's especially painful on Flutter Web (MediaPipe doesn't run cleanly in Chrome via Flutter). Trying it tonight risks breaking what already works. I'll show you the honest way to handle this in the demo instead.
+
+## Tier 1 — do these first (~2-3 hrs, huge visible payoff)
+
+1. **Wire trip creation for real.** When the user submits source/destination in `ConfigurationScreen`, call `api.createDriver()` (once) then `api.createTrip()` to get a real `tripId` — pass it into `DashboardScreen` instead of just strings. Everything else below depends on having a real `tripId`.
+
+2. **Wire real route + ETA.** Replace the hardcoded `"42%"`, `"Departed 06:40"`, `"2h 48m"` with an actual call to `api.calculateRoute(...)` on screen load. Even with no Mapbox token, your backend's fallback gives you a real haversine-calculated distance/duration — so this instantly stops being fake data.
+
+3. **Wire real weather.** You already have the test button working — just move that same call into `initState()` so the weather card populates automatically instead of showing static `28°C Clear`.
+
+4. **Wire the trivia button for real.** Swap the hardcoded `_quizzes` list for a live call to `api.getEngagementTrivia(location: ...)`. This is maybe 10 minutes of work and directly proves your "location-based LLM trivia" pitch claim with real data (Nagpur/Amravati/Akola facts from your `llm_service.py`).
+
+## Tier 2 — if time remains (~1-2 hrs)
+
+5. **Add a "Simulate Fatigue Event" trigger.** Since there's no real camera signal, add a debug button (or long-press on the camera icon) that calls `recordFatigueEvent()` → `calculateRisk()` → updates the risk card and increments the 3-strike counter live. This proves your **actual risk-scoring algorithm** (the weighted EAR/duration/weather/circadian model in `risk_service.py`) is real and working — just triggered manually instead of by a real camera. That's a legitimate, common hackathon pattern: "hardware/sensor simulated, logic layer fully real."
+
+6. **Connect the WebSocket.** Open a `TripSocket` when the trip starts, and have a `Timer.periodic` push simulated telemetry (slowly drifting speed/EAR) every few seconds. Judges seeing live data stream over a WebSocket in the debug console is a strong visual "this isn't just a static screen" moment.
+
+## What to say about the camera piece
+
+Be upfront rather than hiding it: **"Face Mesh tracking runs on-device per our Edge/Cloud architecture; for this demo we're simulating the EAR signal to show the full alert pipeline, since real-time camera inference was the next integration milestone."** That's honest, it's exactly what your roadmap slide already says, and judges respect clear scoping far more than a broken camera feature crashing mid-demo.
+
+---
+
+## Deployment — get it off localhost
