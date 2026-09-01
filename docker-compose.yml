@@ -1,0 +1,14 @@
+services:
+  fader:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - fader_data:/data
+    environment:
+      DATABASE_URL: sqlite:////data/fader.db
+      MAPBOX_ACCESS_TOKEN: ${MAPBOX_ACCESS_TOKEN:-pk.demo_token_fader}
+      WEATHER_API_KEY: ${WEATHER_API_KEY:-demo_weather_key}
+
+volumes:
+  fader_data:

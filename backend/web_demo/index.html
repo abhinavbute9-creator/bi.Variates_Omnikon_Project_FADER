@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0754aa" />
+  <meta name="description" content="FADER — Fatigue Awareness and Driver Engagement Routing" />
+  <title>FADER — Driver Safety</title>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="/demo/styles.css" />
+</head>
+<body>
+  <section id="splashView" class="splash-view" aria-label="FADER welcome">
+    <div class="splash-orb splash-orb-a"></div>
+    <div class="splash-orb splash-orb-b"></div>
+    <button id="splashButton" class="splash-center" type="button" aria-label="Enter FADER">
+      <span class="eye-mark" aria-hidden="true"><span class="eye-pupil"></span></span>
+      <span class="splash-wordmark">FADER</span>
+      <span class="splash-caption">TAP THE PUPIL TO BEGIN</span>
+    </button>
+  </section>
+
+  <div id="appShell" class="app-shell hidden">
+    <header class="topbar">
+      <button id="brandHome" class="brand" type="button" aria-label="FADER home">
+        <span class="mini-eye"><span></span></span>
+        <span>FADER</span>
+      </button>
+      <div class="topbar-right">
+        <span id="backendPill" class="status-pill pending"><i></i><span>Connecting backend…</span></span>
+        <a href="/docs" target="_blank" rel="noreferrer" class="docs-link">API</a>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section id="setupView" class="setup-view">
+        <div class="setup-copy">
+          <p class="eyebrow">FATIGUE AWARENESS + DRIVER ENGAGEMENT ROUTING</p>
+          <h1>Safer long-haul journeys, driven by live context.</h1>
+          <p class="lead">FADER joins route, weather, fatigue, cabin-air and engagement signals into one transparent driver-safety workflow.</p>
+          <div class="feature-strip">
+            <div><span>01</span><strong>Plan</strong><small>Road-aware journey context</small></div>
+            <div><span>02</span><strong>Observe</strong><small>Telemetry + fatigue events</small></div>
+            <div><span>03</span><strong>Respond</strong><small>Risk-aware intervention</small></div>
+          </div>
+          <div class="prototype-note">
+            <strong>Prototype note</strong>
+            <span>Camera/EAR inference is represented by an explicit simulation control in this submission build. Backend event handling, risk escalation and telemetry are live.</span>
+          </div>
+        </div>
+
+        <form id="tripForm" class="surface setup-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">PRE-TRIP CONFIGURATION</p>
+              <h2>Initialize routing</h2>
+            </div>
+            <span class="section-number">01</span>
+          </div>
+
+          <label>Driver name
+            <input id="driverName" value="Demo Driver" autocomplete="name" required />
+          </label>
+          <label>Vehicle ID
+            <input id="vehicleId" value="MH-31-FADER-01" required />
+          </label>
+          <div class="two-col">
+            <label>Source
+              <select id="source" required></select>
+            </label>
+            <label>Destination
+              <select id="destination" required></select>
+            </label>
+          </div>
+          <div class="two-col compact">
+            <label>Backup drivers
+              <input id="backupDrivers" type="number" min="0" max="5" value="1" />
+            </label>
+            <label>Meal in last 2 hours
+              <select id="recentMeal"><option value="yes">Yes</option><option value="no">No</option></select>
+            </label>
+          </div>
+          <button id="startButton" class="primary-button" type="submit">
+            <span>INITIALIZE ROUTING</span><b aria-hidden="true">→</b>
+          </button>
+          <p id="setupError" class="form-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section id="dashboardView" class="dashboard-view hidden">
+        <div class="journey-head">
+          <div>
+            <p class="eyebrow">ACTIVE JOURNEY <span id="liveDot" class="live-dot"></span></p>
+            <h1 id="routeTitle">—</h1>
+            <p id="tripMeta" class="subtle">Preparing trip…</p>
+          </div>
+          <div class="head-actions">
+            <button id="engagementButton" class="secondary-button" type="button">ENGAGEMENT CHECK</button>
+            <button id="endTripButton" class="danger-button" type="button">END TRIP</button>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="surface route-card span-8">
+            <div class="section-head slim">
+              <div>
+                <p class="eyebrow">ROAD ROUTE</p>
+                <h2 id="routeDistance">— km</h2>
+              </div>
+              <span id="routeSource" class="source-chip">—</span>
+            </div>
+            <div id="mapWrap" class="map-wrap">
+              <div id="routeMap" class="route-map" aria-label="Road route map"></div>
+              <div id="mapFallback" class="map-fallback hidden">
+                <span class="map-fallback-icon">↗</span>
+                <strong>Road map temporarily unavailable</strong>
+                <p>Distance and duration remain available from the backend. A straight-line fallback is intentionally not shown as a road.</p>
+              </div>
+            </div>
+            <div class="route-footer">
+              <div><span>Estimated travel</span><strong id="routeDuration">—</strong></div>
+              <div><span>Demo elapsed</span><strong id="elapsedDuration">0 min</strong></div>
+              <div><span>Realtime channel</span><strong id="wsStatus">Connecting…</strong></div>
+            </div>
+          </article>
+
+          <article class="surface weather-card span-4">
+            <p class="eyebrow">WEATHER CONTEXT</p>
+            <div class="temperature"><strong id="temperature">—</strong><span>°C</span></div>
+            <h3 id="weatherCondition">Loading…</h3>
+            <div class="metric-lines">
+              <p><span>Humidity</span><strong id="humidity">—</strong></p>
+              <p><span>Wind</span><strong id="wind">—</strong></p>
+              <p><span>Rain</span><strong id="rain">—</strong></p>
+            </div>
+            <span id="weatherSource" class="source-chip">—</span>
+          </article>
+
+          <article id="riskCard" class="surface risk-card span-4 risk-low">
+            <div class="section-head slim">
+              <div><p class="eyebrow">FATIGUE RISK</p><h2 id="riskLevel">LOW</h2></div>
+              <div class="score-ring"><span id="riskScore">0</span><small>/100</small></div>
+            </div>
+            <div class="risk-bar"><span id="riskBar"></span></div>
+            <div class="factor-grid">
+              <div><span>Fatigue</span><strong id="factorFatigue">—</strong></div>
+              <div><span>Duration</span><strong id="factorDuration">—</strong></div>
+              <div><span>Weather</span><strong id="factorWeather">—</strong></div>
+              <div><span>Circadian</span><strong id="factorCircadian">—</strong></div>
+            </div>
+          </article>
+
+          <article class="surface span-4 air-card">
+            <p class="eyebrow">CABIN AIR MODEL</p>
+            <div class="ppm"><strong id="co2Ppm">—</strong><span>ppm</span></div>
+            <h3 id="airQuality">—</h3>
+            <p id="airPrompt" class="subtle">Calculating cabin-air estimate…</p>
+            <div class="range-meter"><span id="co2Meter"></span></div>
+            <p class="microcopy">Prototype estimate — not a physical CO₂ sensor.</p>
+          </article>
+
+          <article class="surface span-4 intervention-card">
+            <p class="eyebrow">FATIGUE INTERVENTION</p>
+            <h2><span id="strikeCount">0</span> / 3 STRIKES</h2>
+            <p id="fatigueMessage" class="subtle">No simulated fatigue events recorded.</p>
+            <button id="simulateFatigueButton" class="fatigue-button" type="button">SIMULATE FATIGUE SIGNAL</button>
+            <p class="microcopy">Explicit demo signal: EAR 0.17 + HIGH microsleep event.</p>
+          </article>
+
+          <article class="surface span-6 telemetry-card">
+            <div class="section-head slim">
+              <div><p class="eyebrow">LIVE TELEMETRY</p><h2>Realtime + persisted</h2></div>
+              <span id="telemetryCount" class="section-number">0</span>
+            </div>
+            <div class="telemetry-stats">
+              <div><span>Speed</span><strong id="speedValue">0 km/h</strong></div>
+              <div><span>EAR</span><strong id="earValue">0.28</strong></div>
+              <div><span>Fatigue</span><strong id="telemetryFatigue">LOW</strong></div>
+            </div>
+            <button id="telemetryButton" class="secondary-button full" type="button">SEND TELEMETRY FRAME</button>
+            <p id="telemetryLog" class="telemetry-log">Waiting for live frame…</p>
+          </article>
+
+          <article class="surface span-6 engagement-card">
+            <p class="eyebrow">DRIVER ENGAGEMENT</p>
+            <blockquote id="engagementText">Request an engagement prompt to load route-aware trivia.</blockquote>
+            <div class="engagement-footer"><span id="engagementLocation">En Route</span><span id="engagementSource" class="source-chip">—</span></div>
+          </article>
+        </div>
+
+        <section class="surface activity-card">
+          <div class="section-head slim">
+            <div><p class="eyebrow">SYSTEM ACTIVITY</p><h2>Live backend workflow</h2></div>
+            <button id="clearLogButton" class="text-button" type="button">Clear</button>
+          </div>
+          <div id="eventLog" class="event-log"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="/demo/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+backend/.venv/
+backend/venv/
+backend/.env
+backend/fader.db
+**/__pycache__/
+*.pyc
+*.pyo
+.dart_tool/
+build/
+.idea/
+.vscode/
+.DS_Store

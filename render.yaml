@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: fader-driver-safety
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./fader.db
+      - key: MAPBOX_ACCESS_TOKEN
+        value: pk.demo_token_fader
+      - key: WEATHER_API_KEY
+        value: demo_weather_key
